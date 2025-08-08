@@ -24,7 +24,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+
+defineOptions({ name: 'RichText' })
 import { Editor, EditorContent, BubbleMenu } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import CommentExtension from '@sereneinserenade/tiptap-comment-extension'
@@ -35,10 +37,10 @@ const props = defineProps({
   supabaseUrl: { type: String, required: true },
   supabaseKey: { type: String, required: true },
   documentId: { type: String, required: true },
-  initialContent: { type: Object, default: () => ({}) }
+  modelValue: { type: Object, default: () => ({}) }
 })
 
-const emit = defineEmits(['update:content'])
+const emit = defineEmits(['update:modelValue'])
 
 const supabase = createClient(props.supabaseUrl, props.supabaseKey)
 
@@ -63,11 +65,21 @@ const editor = new Editor({
       }
     })
   ],
-  content: props.initialContent,
+  content: props.modelValue,
   onUpdate: () => {
-    emit('update:content', editor.getJSON())
+    emit('update:modelValue', editor.getJSON())
   }
 })
+
+watch(
+  () => props.modelValue,
+  newContent => {
+    const current = editor.getJSON()
+    if (JSON.stringify(newContent) !== JSON.stringify(current)) {
+      editor.commands.setContent(newContent)
+    }
+  }
+)
 
 onMounted(async () => {
   const { data, error } = await supabase
